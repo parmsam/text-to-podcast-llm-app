@@ -1,6 +1,6 @@
 # text-to-podcast-llm-app
 
-This Shiny for Python app is inspired by a recent feature into notebooklm form Google. It summarizes your text and turns it into a short podcast audio clip. The app is a simple interface that allows users to input text and generate an audio file from the text. The app is built using the `gtts`  and `OpenAI` libraries.
+This Shiny for Python app is inspired by a recent feature into notebooklm from Google. It summarizes your text and turns it into a short podcast audio clip. The app is a simple interface that allows users to input text and generate an audio file from the text. The app is built using the `gtts`  and `OpenAI` libraries.
 
 ## Setup
 
