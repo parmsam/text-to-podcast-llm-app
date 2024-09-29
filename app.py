@@ -84,7 +84,8 @@ def server(input, output, session):
         for line in lines:
             if line.strip():
                 speaker, text = line.split(':', 1)
-                tts = gTTS(text=text.strip(), lang='en', slow=False)
+                # make it sound like an irish person
+                tts = gTTS(text=text.strip(), lang='en', slow=False, tld='ie')
                 
                 mp3_fp = io.BytesIO()
                 # Clear the previous audio file
@@ -94,7 +95,8 @@ def server(input, output, session):
                 
                 # For speaker B, we'll use a different voice (tld parameter)
                 if speaker.strip().upper() == 'B':
-                    tts = gTTS(text=text.strip(), lang='en', slow=False, tld='com.au')
+                    # make it sound like an Australian
+                    tts = gTTS(text=text.strip(), lang='en', slow=False, tld='ca')
                     mp3_fp = io.BytesIO()
                     tts.write_to_fp(mp3_fp)
                     mp3_fp.seek(0)
