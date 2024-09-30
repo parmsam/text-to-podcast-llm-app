@@ -15,3 +15,5 @@ You can clone this repo and run the app locally or access the app via [Connect C
 - https://www.tomsguide.com/ai/i-turned-my-book-into-a-podcast-using-google-notebooklm-s-updated-feature-here-s-how
 - https://blog.google/technology/ai/notebooklm-audio-overviews/
 - https://www.theverge.com/2024/9/26/24255176/google-notebooklm-summarize-youtube-videos-ai
+- https://medium.com/google-cloud/building-a-dynamic-podcast-generator-inspired-by-googles-notebooklm-and-illuminate-e585cfcd0af1
+- https://simonwillison.net/2024/Sep/29/notebooklm-audio-overview/

@@ -4,6 +4,7 @@ import io
 import base64
 from openai import OpenAI
 import os
+import json
 
 try:
     from setup import api_key1
@@ -14,6 +15,21 @@ app_info = """
 This app creates a short podcast clip between two hosts, A and B, discussing 
 source material that you provide. Note that it might take a minute or two to
 generate the podcast transcript and audio clip
+"""
+default_word_limit = 350
+json_schema = """
+       {
+            "transcript": [
+                {
+                "speaker": "A",
+                "dialogue": "Welcome to our podcast!"
+                },
+                {
+                "speaker": "B",
+                "dialogue": "Thank you! It's great to be here."
+                }
+            ]
+        }
 """
 
 app_ui = ui.page_fluid(
@@ -32,6 +48,13 @@ app_ui = ui.page_fluid(
             value="Artificial Intelligence is rapidly advancing and changing various aspects of our lives.",
             height="200px"
         ),
+        ui.input_slider(
+            "word_limit",
+            "Default word limit",
+            value=default_word_limit,
+            min=300,
+            max=500
+        ),
         ui.input_action_button("generate", "Generate Podcast"),
         open="always"
     ),
@@ -42,8 +65,7 @@ app_ui = ui.page_fluid(
 )
 
 def server(input, output, session):
-    transcript1 = reactive.Value(
-        """Awaiting podcast transcript...""")
+    transcript_data = reactive.Value("Awaiting podcast transcript...")
     audio_data = reactive.Value(None)
 
     @reactive.Effect
@@ -55,16 +77,17 @@ def server(input, output, session):
             return
         client = OpenAI(api_key=api_key)
         
-        prompt = f"""
-        Create a short podcast transcript between two hosts, A and B, discussing the following source material:
+        prompt = f"""Create a short engaging podcast transcript between two hosts, A and B, discussing the following source material:
         {input.text_input()}
         
         Format the transcript as follows:
-        A: [Host A's dialogue]
-        B: [Host B's dialogue]
-        
-        Keep the entire transcript under 200 words.
-        """
+        {json_schema}
+        Keep the entire transcript dialogue under {input.word_limit} words.
+        Try to use sentences that can be easily used with speech synthesis.
+          - Show excitement and enthusiasm during the conversation.
+        Only return the JSON response. Nothing else but JSON. 
+          - Do not include ```json ``` (triple tick marks).
+        Ensure it is compliant with JSON rules."""
         try:
             response = client.chat.completions.create(
                 model="gpt-4o-mini",
@@ -74,40 +97,45 @@ def server(input, output, session):
                 ]
             )
             generated_transcript = response.choices[0].message.content.strip()
-            transcript1.set(generated_transcript)
-        
-            lines = generated_transcript.split('\n')
-            combined_audio = io.BytesIO()
         except Exception as e:
             ui.notification_show(f"Error: {str(e)}", type="error")
         
-        for line in lines:
-            if line.strip():
-                speaker, text = line.split(':', 1)
-                # make it sound like an irish person
-                tts = gTTS(text=text.strip(), lang='en', slow=False, tld='ie')
-                
+        combined_audio = io.BytesIO()
+        # Load the JSON data
+        generated_transcript = json.loads(generated_transcript)
+        # format the transcript as string with A: and B: as speaker
+        fmtd_transcript = ""
+        for entry in generated_transcript["transcript"]:
+            speaker = entry["speaker"]
+            dialogue = entry["dialogue"]
+            fmtd_transcript += f"{speaker}: {dialogue}\n"
+        transcript_data.set(fmtd_transcript)
+
+        for entry in generated_transcript["transcript"]:
+            speaker = entry["speaker"]
+            text = entry["dialogue"]
+            # make it sound like an irish person
+            tts = gTTS(text=text.strip(), lang='en', tld='ie', slow=False)
+            mp3_fp = io.BytesIO()
+            # Clear the previous audio file
+            mp3_fp.truncate(0)
+            tts.write_to_fp(mp3_fp)
+            mp3_fp.seek(0)
+            # For speaker B, we'll use a different voice (tld parameter)
+            if speaker.strip().upper() == 'B':
+                # make it sound like an Australian
+                tts = gTTS(text=text.strip(), lang='en', tld='us', slow=False)
                 mp3_fp = io.BytesIO()
-                # Clear the previous audio file
-                mp3_fp.truncate(0)
                 tts.write_to_fp(mp3_fp)
                 mp3_fp.seek(0)
-                
-                # For speaker B, we'll use a different voice (tld parameter)
-                if speaker.strip().upper() == 'B':
-                    # make it sound like an Australian
-                    tts = gTTS(text=text.strip(), lang='en', slow=False, tld='ca')
-                    mp3_fp = io.BytesIO()
-                    tts.write_to_fp(mp3_fp)
-                    mp3_fp.seek(0)
-                combined_audio.write(mp3_fp.getvalue())
+            combined_audio.write(mp3_fp.getvalue())
         combined_audio.seek(0)
         audio_data.set(combined_audio.getvalue())
 
     @output
     @render.text
     def transcript():
-        return transcript1()
+        return transcript_data()
 
     @output
     @render.ui
